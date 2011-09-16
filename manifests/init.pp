@@ -43,6 +43,11 @@ class backupman(
   managed_dir { $destdir: }
   if !defined( Managed_dir[$lockdir] ) {  managed_dir { $lockdir: } }
   if !defined( Managed_dir[$logdir] )  {  managed_dir { $logdir: } }
+  
+  # on the server, we collect and realizes all exported sources
+  Rsync_for_backupman    <<| |>>
+  Schedule_for_backupman <<| |>>
+  
 
   # private
   define managed_dir ( $recurse = false ) {
@@ -77,8 +82,9 @@ class backupman(
     }
   }
   
+
   # Define: schedule
-  #   Sets up an cron job 
+  #   Sets up an cron job on the BackupMan server.
   # Parameters:
   #   $title: the FQDN of the host
   #   $user: the account the cronjob will run with
@@ -87,17 +93,28 @@ class backupman(
   # arguments
   #
   define schedule ( $user = 'backupman', $minute = undef, $hour = undef, $monthday = undef, $month = undef, $weekday = undef ) {
+    @@schedule_for_backupman { $title:
+      user     => $user,
+      minute   => $minute,
+      hour     => $hour,
+      monthday => $monthday,
+      month    => $month,
+      weekday  => $weekday,
+    }
+  }
 
-    cron { "BackupMan_${host}":
+  define schedule_for_backupman ( $user = 'backupman', $minute = '*', $hour = '*', $monthday = '*', $month = '*', $weekday = '*' ) {
+    cron { "BackupMan_${title}":
       user    => $user,
       command => "/usr/bin/backup_man -l '${backupman::logdir}/${title}.log' /var/lib/puppet/modules/backupman/${title}",
       minute  => $minute, hour => $hour, monthday => $monthday, month => $month, weekday => $weekday,
     }
   }
+  
 
   # Define: rsync
-  #   Use this definition on your backup server. It configures BackupMan to do
-  #   pull rsync over ssh.
+  #   Use this definition on the server to be backed up.  It generates an
+  #   exported resource for the BackupMan server.
   # Parameters:
   #   $title: a self-explanatory name for this definition
   #   $host: FQDN of remote host
@@ -108,6 +125,17 @@ class backupman(
   define rsync ( $host, $sources, $destination = '', $user = '',
     $options = '-azR --delete --fake-super') {
     
+      @@rsync_for_backupman { $title:
+        host        => $host,
+        sources     => $sources,
+        destination => $destination,
+        user        => $user,
+        options     => $options,
+      }
+  }
+  
+  define rsync_for_backupman ( $host, $sources, $destination, $user, $options ) {
+
     if $destination == '' {
       $_destination_dir = "${backupman::destdir}/${host}/rsync_${title}"
       managed_dir { "${backupman::destdir}/${host}": }
@@ -139,4 +167,5 @@ class backupman(
       line => "Rsync.new('${host}') {|b| b.backup ${_sources}; ${_destination}${_user}${_options} }",
     }
   }
+  
 }

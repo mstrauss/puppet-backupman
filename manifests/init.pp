@@ -125,8 +125,9 @@ class backupman(
   define rsync ( $host, $sources, $destination = '', $user = '',
     $options = '-azR --delete --fake-super') {
     
-      @@rsync_for_backupman { $title:
+      @@rsync_for_backupman { "${host}_${title}":
         host        => $host,
+        setname     => $title,
         sources     => $sources,
         destination => $destination,
         user        => $user,
@@ -134,10 +135,10 @@ class backupman(
       }
   }
   
-  define rsync_for_backupman ( $host, $sources, $destination, $user, $options ) {
+  define rsync_for_backupman ( $setname, $host, $sources, $destination, $user, $options ) {
 
     if $destination == '' {
-      $_destination_dir = "${backupman::destdir}/${host}/rsync_${title}"
+      $_destination_dir = "${backupman::destdir}/${host}/rsync_${setname}"
       managed_dir { "${backupman::destdir}/${host}": }
     } else {
       $_destination_dir = $destination

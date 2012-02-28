@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+%w( getoptlong ).each { |req| require req }
+
+def usage
+  <<-EOF
+Usage: #{$0} -d <destination> [--part <subdirectory>] [--ok] [-- <rsync options>]
+Options:
+ --dest: the destination server:/path, like 'destserver:/var/tmp/restore'
+ --part: just restore the subdirectory, e.g. 'var/www'
+ --ok: no dry run
+  rsync options: just that
+  EOF
+end
+if __FILE__ == $0
+  
+  opts = GetoptLong.new(
+    [ '--help',        '-h', GetoptLong::NO_ARGUMENT ],
+    [ '--destination', '-d', GetoptLong::REQUIRED_ARGUMENT ],
+    [ '--part',        '-p', GetoptLong::OPTIONAL_ARGUMENT ],
+    [ '--ok',                GetoptLong::OPTIONAL_ARGUMENT ]
+  )
+  
+  destination = nil
+  dry  = '--dry-run'
+  part = ''
+  
+  opts.each do |opt, arg|
+    case opt
+    when '--help'
+      puts usage
+      exit 0
+    when '--destination'
+      destination = arg
+    when '--ok'
+      dry = ''
+    when '--part'
+      part = "/#{arg}"
+    end
+  end
+
+  rsync_options = ARGV.join
+  
+  if destination
+    cmd = "sudo -u backupman rsync -e 'ssh -l root' -avr #{dry} --fake-super --numeric-ids #{rsync_options} <%= restore_source_dir %>#{part} #{destination}"
+    puts "Executing: #{cmd}"
+    system( cmd )
+  else
+    puts usage
+  end
+
+end

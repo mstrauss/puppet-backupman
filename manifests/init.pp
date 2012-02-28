@@ -25,6 +25,7 @@ class backupman(
   $logdir = "${destdir}/logs",
   $sshapp = 'ssh',
   $user = 'backupman',
+  $group = 'root',
   $version = ''
 ) {
   
@@ -45,13 +46,13 @@ class backupman(
   if !defined( Managed_dir[$logdir] )  {  managed_dir { $logdir: } }
   
   # on the server, we collect and realizes all exported sources
-  Rsync_for_backupman    <<| |>>
-  Schedule_for_backupman <<| |>>
-  
+  Rsync_for_backupman         <<| |>>
+  Schedule_for_backupman      <<| |>>  
+  # resources { [rsync_for_backupman, schedule_for_backupman]: purge => true }
 
   # private
   define managed_dir ( $recurse = false ) {
-    file { $title: ensure => directory, owner => $backupman::user, group => puppet, mode  => 640,
+    file { $title: ensure => directory, owner => $::backupman::user, group => $::backupman::group, mode  => 640,
       recurse => $recurse }
   }
   
@@ -65,7 +66,7 @@ class backupman(
 
     file {
       "${dir}/000-header":
-        content => "# managed by Puppet - DO NOT EDIT\n#\nDESTDIR='${backupman::destdir}'\nLOCKDIR='${backupman::lockdir}'\nSSH_APP='${backupman::sshapp}'\n",
+        content => "# managed by Puppet - DO NOT EDIT\n#\nDESTDIR='${::backupman::destdir}'\nLOCKDIR='${::backupman::lockdir}'\nSSH_APP='${::backupman::sshapp}'\n",
         mode => 0644, owner => root, group => 0,
         notify => Exec["concat_${dir}"];
     }
@@ -81,92 +82,7 @@ class backupman(
       notify => Exec["concat_${dir}"],
     }
   }
-  
-
-  # Define: schedule
-  #   Sets up an cron job on the BackupMan server.
-  # Parameters:
-  #   $title: the FQDN of the host
-  #   $user: the account the cronjob will run with
-  #   other paramters: passed to cron
-  #
-  # arguments
-  #
-  define schedule ( $user = 'backupman', $minute = undef, $hour = undef, $monthday = undef, $month = undef, $weekday = undef ) {
-    @@schedule_for_backupman { $title:
-      user     => $user,
-      minute   => $minute,
-      hour     => $hour,
-      monthday => $monthday,
-      month    => $month,
-      weekday  => $weekday,
-    }
-  }
-
-  define schedule_for_backupman ( $user = 'backupman', $minute = '*', $hour = '*', $monthday = '*', $month = '*', $weekday = '*' ) {
-    cron { "BackupMan_${title}":
-      user    => $user,
-      command => "/usr/bin/backup_man -l '${backupman::logdir}/${title}.log' /var/lib/puppet/modules/backupman/${title}",
-      minute  => $minute, hour => $hour, monthday => $monthday, month => $month, weekday => $weekday,
-    }
-  }
-  
-
-  # Define: rsync
-  #   Use this definition on the server to be backed up.  It generates an
-  #   exported resource for the BackupMan server.
-  # Parameters:
-  #   $title: a self-explanatory name for this definition
-  #   $host: FQDN of remote host
-  #   $sources: Array of remote directories to backup
-  #   $destination: Local destination directory
-  #   $user: Remote user name for SSH
-  #   $options: Options for rsync
-  define rsync ( $host, $sources, $destination = '', $user = '',
-    $options = '-azR --delete --fake-super') {
     
-      @@rsync_for_backupman { "${host}_${title}":
-        host        => $host,
-        setname     => $title,
-        sources     => $sources,
-        destination => $destination,
-        user        => $user,
-        options     => $options,
-      }
-  }
-  
-  define rsync_for_backupman ( $setname, $host, $sources, $destination, $user, $options ) {
 
-    if $destination == '' {
-      $_destination_dir = "${backupman::destdir}/${host}/rsync_${setname}"
-      managed_dir { "${backupman::destdir}/${host}": }
-    } else {
-      $_destination_dir = $destination
-    }
-    $_destination = "b.to '${_destination_dir}'; "
-    
-    # no recursion, cause that is slow and breaks the restore
-    # it's not needed anyway 'cause the top level dirs are secured
-    managed_dir { $_destination_dir: recurse => false }
 
-    if $user == '' {
-      $_user = ''
-    } else {
-      $_user = "b.user '${user}'; "
-    }
-
-    if $options == '' {
-      $_options = ''
-    } else {
-      $_options = "b.options '${options}'; "
-    }
-    
-    $_sources = array_to_s( $sources )
-
-    managed_file{ $host: }
-    entry { "${host}.d/rsync-${title}":
-      line => "Rsync.new('${host}') {|b| b.backup ${_sources}; ${_destination}${_user}${_options} }",
-    }
-  }
-  
 }

@@ -47,8 +47,14 @@ class backupman(
   
   # on the server, we collect and realizes all exported sources
   Rsync_for_backupman         <<| |>>
+  Mysql_for_backupman         <<| |>>
   Schedule_for_backupman      <<| |>>  
+  # # das funktioniert leider nicht: Could not find resource type 'mysql_for_backupman'
   # resources { [rsync_for_backupman, schedule_for_backupman]: purge => true }
+  # resources { mysql_for_backupman: purge => true }
+  
+  # # schmeissen dafür die überschüssigen cron-jobs direkt weg: GEHT AUCH NICHT! SCHEIXXX
+  # resources { cron: purge => true }
 
   # private
   define managed_dir ( $recurse = false ) {

@@ -1,9 +1,9 @@
-# $title : please use "hostname:/directory/path"
-define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, $options = undef,
+# $title : please use "hostname:databasename"
+define backupman::mysql_for_backupman ( $host, $database, $destination, $user, $options = undef,
   $restore_enabled = false, $restore_identity = $host )
 {
   if $destination == '' {
-    $_destination_dir = "${backupman::destdir}/${host}/rsync"
+    $_destination_dir = "${backupman::destdir}/${host}/mysql"
     if !defined( Managed_dir["${backupman::destdir}/${host}"] ) {
       managed_dir { "${backupman::destdir}/${host}": }
     }
@@ -14,7 +14,7 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
     }
   }
   $_destination = "b.to '${_destination_dir}'; "
-  
+
   # a) one managed_dir per resource and
   # b) no recursion, cause that is slow and breaks the restore
   # it's not needed anyway 'cause the top level dirs are secured
@@ -28,46 +28,42 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
     $_user = "b.user '${user}'; "
   }
 
-  $_directory = regsubst( $directory, '/', '_', 'G' )
-  
+  $_databases = join( $database, ' ' )
+
   if $options == undef {
-    # by default we log into the same file as 
-    $rsynclog = "${backupman::logdir}/${host}/rsync${_directory}.log"
-    # --numeric-ids required when using --fake-super (ext. attributes ALWAYS store
-    # numeric ids only)
-    $__options = "-azR --delete --fake-super --numeric-ids --log-file=${rsynclog}"
+    $__options = "-u root ${_databases}"
   } else {
     $__options = $options
   }
   
   $_options = "b.options '${__options}'; "
+  
+  $_filename = "b.filename '${database}.sql.gz'"
 
   # the BackupMan configuration file
   if !defined( Managed_file[$host] ) {
     managed_file{ $host: }
   }
-  
-  entry { "${host}.d/rsync${_directory}":
-    line => "Rsync.new('${host}') {|b| b.backup '${directory}'; ${_destination}${_user}${_options} }",
+  entry { "${host}.d/mysql-${title}":
+    line => "Mysql.new('${host}') {|b| ${_destination}${_user}${_options}${_filename} }",
   }
   
   # --- Restoring ---
-  # we install a small rsync restore script to ease manual restore
-  $restore_source_dir = "rsync"
-  file { "${backupman::destdir}/${host}/rsync${_directory}_restore":
-    content => template( 'backupman/restore.erb' ),
-    mode    => 755,
-    ensure  => present,
-  }
-
+  # # we install a small rsync restore script to ease manual restore
+  # $restore_source_dir = "mysql"
+  # file { "${backupman::destdir}/${host}/mysql_restore":
+  #   content => template( 'backupman/mysql_restore.erb' ),
+  #   mode    => 755,
+  #   ensure  => present,
+  # }
   if $restore_enabled == true {
     debug( "Restoring enabled for #{title} with identity #{restore_identity}.")
     
     # for each source we check if a restore is required
-    rsync_server_checks_for_restore { $title:
-      host => $host,
-      directory => $directory,
-      sourcepath  => "${backupman::destdir}/${restore_identity}/rsync${directory}",
+    mysql_server_checks_for_restore { $database:
+      restore_destination => $host,
+      # we assume the default path
+      restore_sourcepath  => "${backupman::destdir}/${restore_identity}/mysql",
     }
   }
 }

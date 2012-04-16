@@ -79,12 +79,13 @@ class backupman(
   }
 
   # private
-  define entry ($line) {
+  define entry ( $line, $ensure = present ) {
     $target = "/var/lib/puppet/modules/backupman/${name}"
     $dir = dirname($target)
     file { $target:
       content => "${line}\n",
       mode => 0644, owner => root, group => 0,
+      ensure => $ensure,
       notify => Exec["concat_${dir}"],
     }
   }

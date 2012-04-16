@@ -44,8 +44,20 @@ define backupman::mysql_for_backupman ( $host, $database, $destination, $user, $
   if !defined( Managed_file[$host] ) {
     managed_file{ $host: }
   }
+
+  if $restore_enabled == true and $restore_identity == $host {
+    # we do NOT do backups if restoring on same host is enabled!
+    $_do_backup = false
+  } else {
+    $_do_backup = true
+  }
+
   entry { "${host}.d/mysql-${title}":
     line => "Mysql.new('${host}') {|b| ${_destination}${_user}${_options}${_filename} }",
+    ensure => $_do_backup ? {
+      false   => absent,
+      default => present,
+    },
   }
   
   # --- Restoring ---

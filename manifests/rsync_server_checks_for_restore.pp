@@ -18,7 +18,9 @@ define backupman::rsync_server_checks_for_restore ( $host, $directory, $sourcepa
     notify => Exec["restore ${title}"],
   }
   
-  $logfile = shellquote("restore_for_${restore_destination}_$( date +%s ).log")
+  $_directory = regsubst( $directory, '/', '_', 'G' )
+  
+  $logfile = shellquote("restore_for${_directory}_$( date +%s ).log")
   exec{ "restore ${title}":
     refreshonly => true,
     cwd => $restore_sourcepath,

@@ -47,8 +47,19 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
     managed_file{ $host: }
   }
   
+  if $restore_enabled == true and $restore_identity == $host {
+    # we do NOT do backups if restoring on same host is enabled!
+    $_do_backup = false
+  } else {
+    $_do_backup = true
+  }
+  
   entry { "${host}.d/rsync${_directory}":
     line => "Rsync.new('${host}') {|b| b.backup '${directory}'; ${_destination}${_user}${_options} }",
+    ensure => $_do_backup ? {
+      false   => absent,
+      default => present,
+    },
   }
   
   # --- Restoring ---
@@ -65,6 +76,8 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
     
     # for each source we check if a restore is required
     rsync_server_checks_for_restore { $title:
+      # manage the Backupman cron job first
+      require => Entry["${host}.d/rsync${_directory}"],
       host => $host,
       directory => $directory,
       sourcepath  => "${backupman::destdir}/${restore_identity}/rsync${directory}",

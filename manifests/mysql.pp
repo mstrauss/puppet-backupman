@@ -13,7 +13,8 @@
 #   $restore_identity: Use file from an other host for restore.
 define backupman::mysql ( $host = $::fqdn, $destination = '', $user = '',
   $options = undef,
-  $restore_enabled = false, $restore_identity = $host )
+  $restore_enabled = false, $restore_identity = $host,
+  $ensure = present )
 {
   
   # Class[mysql::newserver] -> Backupman::Mysql[$title]
@@ -29,6 +30,7 @@ define backupman::mysql ( $host = $::fqdn, $destination = '', $user = '',
     # If it is, the server then pushes the data to the client.      
     restore_enabled  => $restore_enabled,
     restore_identity => $restore_identity,
+    ensure      => $ensure,
   }
   
   # If we have restore enabled, we require that the database is managed by

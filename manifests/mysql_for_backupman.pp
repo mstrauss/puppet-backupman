@@ -1,6 +1,6 @@
 # $title : please use "hostname:databasename"
 define backupman::mysql_for_backupman ( $host, $database, $destination, $user, $options = undef,
-  $restore_enabled = false, $restore_identity = $host )
+  $restore_enabled = false, $restore_identity = $host, $ensure = present )
 {
   if $destination == '' {
     $_destination_dir = "${backupman::destdir}/${host}/mysql"
@@ -44,14 +44,18 @@ define backupman::mysql_for_backupman ( $host, $database, $destination, $user, $
   if !defined( Managed_file[$host] ) {
     managed_file{ $host: }
   }
-
-  if $restore_enabled == true and $restore_identity == $host {
-    # we do NOT do backups if restoring on same host is enabled!
-    $_do_backup = false
+  
+  if $ensure == present {
+    if $restore_enabled == true and $restore_identity == $host {
+      # we do NOT do backups if restoring on same host is enabled!
+      $_do_backup = false
+    } else {
+      $_do_backup = true
+    }
   } else {
-    $_do_backup = true
+    $_do_backup = false
   }
-
+  
   entry { "${host}.d/mysql-${title}":
     line => "Mysql.new('${host}') {|b| ${_destination}${_user}${_options}${_filename} }",
     ensure => $_do_backup ? {
@@ -68,7 +72,7 @@ define backupman::mysql_for_backupman ( $host, $database, $destination, $user, $
   #   mode    => 755,
   #   ensure  => present,
   # }
-  if $restore_enabled == true {
+  if $ensure == present and $restore_enabled == true {
     debug( "Restoring enabled for #{title} with identity #{restore_identity}.")
     
     # for each source we check if a restore is required

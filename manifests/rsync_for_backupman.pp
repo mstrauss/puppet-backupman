@@ -1,6 +1,6 @@
 # $title : please use "hostname:/directory/path"
 define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, $options = undef,
-  $restore_enabled = false, $restore_identity = $host )
+  $restore_enabled = false, $restore_identity = $host, $ensure = present )
 {
   if $destination == '' {
     $_destination_dir = "${backupman::destdir}/${host}/rsync"
@@ -47,11 +47,15 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
     managed_file{ $host: }
   }
   
-  if $restore_enabled == true and $restore_identity == $host {
-    # we do NOT do backups if restoring on same host is enabled!
-    $_do_backup = false
+  if $ensure == present {
+    if $restore_enabled == true and $restore_identity == $host {
+      # we do NOT do backups if restoring on same host is enabled!
+      $_do_backup = false
+    } else {
+      $_do_backup = true
+    }
   } else {
-    $_do_backup = true
+    $_do_backup = false
   }
   
   entry { "${host}.d/rsync${_directory}":

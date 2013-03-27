@@ -1,5 +1,5 @@
 # $title : please use "hostname:/directory/path"
-define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, $options = undef,
+define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, $options = undef, $extra_options = undef,
   $restore_enabled = false, $restore_identity = $host, $ensure = present )
 {
   if $destination == '' {
@@ -30,12 +30,18 @@ define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, 
 
   $_directory = regsubst( $directory, '/', '_', 'G' )
   
+  if $extra_options == undef {
+    $__extra_options = ""
+  } else {
+    $__extra_options = $extra_options
+  }
+  
   if $options == undef {
     # by default we log into the same file as 
     $rsynclog = "${backupman::logdir}/${host}/rsync${_directory}.log"
     # --numeric-ids required when using --fake-super (ext. attributes ALWAYS store
     # numeric ids only)
-    $__options = "-azR --delete --fake-super --numeric-ids --log-file=${rsynclog}"
+    $__options = "-azR --delete --fake-super --numeric-ids --log-file=${rsynclog} ${__extra_options}"
   } else {
     $__options = $options
   }

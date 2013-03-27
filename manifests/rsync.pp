@@ -14,7 +14,7 @@
 #   run.
 #   $restore_identity: Use file from an other host for restore.
 define backupman::rsync ( $host = $::fqdn, $destination = '', $user = '',
-  $options = undef,
+  $options = undef, $extra_options = undef,
   $restore_enabled = false, $restore_identity = $host,
   $ensure = present )
 {
@@ -25,16 +25,17 @@ define backupman::rsync ( $host = $::fqdn, $destination = '', $user = '',
   
   # our backup definition to be put on the BackupMan server
   @@rsync_for_backupman { "${host}:${title}":
-    host        => $host,
-    directory   => $title,          # directory to backup
-    destination => $destination,
-    user        => $user,
-    options     => $options,
+    host          => $host,
+    directory     => $title,          # directory to backup
+    destination   => $destination,
+    user          => $user,
+    options       => $options,
+    extra_options => $extra_options,
     # If we have restore enabled, we check FROM THE SERVER if a restore is required.
     # If it is, the server then pushes the data to the client.      
     restore_enabled  => $restore_enabled,
     restore_identity => $restore_identity,
-    ensure      => $ensure,
+    ensure        => $ensure,
   }
   
   # # If we have restore enabled, we check on the client if a restore is required.

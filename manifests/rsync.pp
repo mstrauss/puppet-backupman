@@ -16,6 +16,7 @@
 define backupman::rsync ( $host = $::fqdn, $destination = '', $user = '',
   $options = undef, $extra_options = undef,
   $restore_enabled = false, $restore_identity = $host,
+  $pre_script = undef, $post_script = undef,
   $ensure = present )
 {
   # rsync package
@@ -35,6 +36,8 @@ define backupman::rsync ( $host = $::fqdn, $destination = '', $user = '',
     # If it is, the server then pushes the data to the client.      
     restore_enabled  => $restore_enabled,
     restore_identity => $restore_identity,
+    pre_script    => $pre_script,
+    post_script   => $post_script,
     ensure        => $ensure,
   }
   

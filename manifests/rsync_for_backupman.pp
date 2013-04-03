@@ -1,6 +1,8 @@
 # $title : please use "hostname:/directory/path"
 define backupman::rsync_for_backupman ( $host, $directory, $destination, $user, $options = undef, $extra_options = undef,
-  $restore_enabled = false, $restore_identity = $host, $ensure = present )
+  $restore_enabled = false, $restore_identity = $host,
+  $pre_script = undef, $post_script = undef,
+  $ensure = present )
 {
   if $destination == '' {
     $_destination_dir = "${backupman::destdir}/${host}/rsync"

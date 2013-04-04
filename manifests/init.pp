@@ -30,7 +30,7 @@ class backupman(
 ) {
   
   # FixMe: this should come from the 'common' module, but that's broken right now
-  managed_dir { '/var/lib/puppet/modules/backupman': }
+  managed_dir { '/var/lib/puppet/modules/backupman': purge => true, recurse => true, force => true }
   
   package { 'BackupMan': ensure => '0.1.5', provider => gem }
   
@@ -49,17 +49,17 @@ class backupman(
   Rsync_for_backupman         <<| |>>
   Mysql_for_backupman         <<| |>>
   Schedule_for_backupman      <<| |>>  
-  # # das funktioniert leider nicht: Could not find resource type 'mysql_for_backupman'
+  # # does not work: Could not find resource type 'mysql_for_backupman'
   # resources { [rsync_for_backupman, schedule_for_backupman]: purge => true }
   # resources { mysql_for_backupman: purge => true }
   
-  # # schmeissen dafür die überschüssigen cron-jobs direkt weg: GEHT AUCH NICHT! SCHEIXXX
-  # resources { cron: purge => true }
-
+  # THIS DOES NOT WORK (as for Puppet 3.1.1): http://projects.puppetlabs.com/issues/3220
+  resources { cron: purge => true }
+  
   # private
-  define managed_dir ( $recurse = false ) {
+  define managed_dir ( $recurse = false, $purge = false, $force = false ) {
     file { $title: ensure => directory, owner => $::backupman::user, group => $::backupman::group, mode  => 640,
-      recurse => $recurse }
+      recurse => $recurse, purge => $purge, force => $force }
   }
   
   # private
